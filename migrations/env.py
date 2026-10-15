@@ -1,7 +1,7 @@
 from logging.config import fileConfig
 
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import create_engine, pool
 
 # Import models so they're registered on Base.metadata before autogenerate/upgrade runs.
 from app.core.config import get_settings
@@ -12,8 +12,8 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# sqlalchemy.url comes from Settings, not alembic.ini — see alembic.ini's comment.
-config.set_main_option("sqlalchemy.url", get_settings().database_url_sync)
+# sqlalchemy.url comes from Settings, not alembic.ini — escape % for configparser interpolation.
+config.set_main_option("sqlalchemy.url", get_settings().database_url_sync.replace("%", "%%"))
 
 target_metadata = Base.metadata
 
@@ -31,9 +31,8 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
+    connectable = create_engine(
+        get_settings().database_url_sync,
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:

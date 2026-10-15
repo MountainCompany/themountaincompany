@@ -46,11 +46,29 @@ class Settings(BaseSettings):
     INITIAL_ADMIN_PASSWORD: str | None = None
 
     @property
+    def database_url_async(self) -> str:
+        """Async SQLAlchemy engine URL — ensures the +asyncpg driver is specified
+        even if DATABASE_URL was written as raw postgresql:// or postgres://."""
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = "postgresql" + url[8:]
+        if url.startswith("postgresql://"):
+            url = "postgresql+asyncpg" + url[10:]
+        return url
+
+    @property
     def database_url_sync(self) -> str:
         """Alembic (and the startup migration runner, §7.5) use a sync driver — psycopg —
         while the app's own runtime engine uses asyncpg. Same database, same DATABASE_URL,
         different driver in the connection string."""
-        return self.DATABASE_URL.replace("+asyncpg", "+psycopg")
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            url = "postgresql" + url[8:]
+        if "+asyncpg" in url:
+            return url.replace("+asyncpg", "+psycopg")
+        if url.startswith("postgresql://"):
+            return "postgresql+psycopg" + url[10:]
+        return url
 
 
 @lru_cache

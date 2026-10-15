@@ -43,7 +43,7 @@ def _alembic_config(settings: Settings) -> Config:
         _REPO_ROOT = Path(__file__).resolve().parents[2]
     cfg = Config(str(_REPO_ROOT / "alembic.ini"))
     cfg.set_main_option("script_location", str(_REPO_ROOT / "migrations"))
-    cfg.set_main_option("sqlalchemy.url", settings.database_url_sync)
+    cfg.set_main_option("sqlalchemy.url", settings.database_url_sync.replace("%", "%%"))
     return cfg
 
 
